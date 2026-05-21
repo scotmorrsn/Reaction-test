@@ -1,0 +1,1726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Arrow</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --fg: #f5f5f5;
+    --accent: #ffcc00;
+    --nogo: #ff3b30;
+    --good: #34c759;
+    --dim: #555;
+    --dim2: #888;
+    --panel: #161616;
+    --border: #2a2a2a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* === CONFIG === */
+  #config {
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 20px;
+    overflow-y: auto;
+  }
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 2px;
+  }
+  .sub {
+    color: var(--dim);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  #sessionCounter {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  #sessionCounter .n {
+    color: var(--fg);
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .field {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  .field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 12px;
+  }
+  .range-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .range-row input[type="number"] {
+    width: 90px;
+    flex: 0 0 90px;
+    background: #000;
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 12px 8px;
+    font-size: 17px;
+    font-family: inherit;
+    border-radius: 8px;
+    text-align: center;
+    -moz-appearance: textfield;
+  }
+  .range-row input[type="number"]::-webkit-outer-spin-button,
+  .range-row input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+  .range-row input[type="text"] {
+    flex: 1;
+    background: #000;
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 12px;
+    font-size: 15px;
+    font-family: inherit;
+    border-radius: 8px;
+  }
+  .range-row span {
+    color: var(--dim);
+    font-size: 12px;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+  .row .ttl {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 4px;
+  }
+  .row .val {
+    font-size: 14px;
+  }
+  .switch {
+    position: relative;
+    width: 52px;
+    height: 30px;
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 30px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    background: var(--dim);
+    border-radius: 50%;
+    transition: all 0.2s;
+  }
+  .switch.on { background: var(--accent); border-color: var(--accent); }
+  .switch.on::after { left: 25px; background: #000; }
+
+  .toggle-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .toggle {
+    background: #000;
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 14px;
+    font-size: 16px;
+    font-family: inherit;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .toggle.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+
+  .collapsible {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease, opacity 0.2s, margin-top 0.2s;
+    opacity: 0;
+    margin-top: 0;
+  }
+  .collapsible.open {
+    max-height: 500px;
+    opacity: 1;
+    margin-top: 16px;
+  }
+
+  .btn-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  #start {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 22px;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: inherit;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  #start:active { transform: scale(0.98); }
+  #endSession {
+    background: transparent;
+    color: var(--fg);
+    border: 1px solid var(--border);
+    padding: 22px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  #endSession:disabled {
+    color: var(--dim);
+    cursor: not-allowed;
+  }
+
+  /* === STIM SCREEN === */
+  #stim {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 10;
+    align-items: center;
+    justify-content: center;
+  }
+  #stim.active { display: flex; }
+  #arrow {
+    font-size: min(85vw, 85vh);
+    line-height: 1;
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 900;
+    opacity: 0;
+    transition: opacity 0.04s;
+    pointer-events: none;
+  }
+  #arrow.show { opacity: 1; }
+  #arrow.nogo { color: var(--nogo); }
+  #status {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 20px;
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--fg);
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+    pointer-events: none;
+    z-index: 5;
+  }
+  #status.holding {
+    color: var(--good);
+    font-size: 64px;
+  }
+  #status.hide { display: none; }
+  #recDot {
+    position: absolute;
+    top: calc(env(safe-area-inset-top) + 16px);
+    right: 20px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--nogo);
+    opacity: 0;
+    pointer-events: none;
+    animation: pulse 1s infinite;
+  }
+  #recDot.on { opacity: 1; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  #liveCam {
+    position: absolute;
+    bottom: calc(env(safe-area-inset-bottom) + 16px);
+    right: 16px;
+    width: 90px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    opacity: 0;
+    pointer-events: none;
+    transform: scaleX(-1);
+  }
+  #liveCam.on { opacity: 0.8; }
+  #stimRT {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    background: var(--bg);
+  }
+  #stimRT.show { display: flex; }
+  #stimRT .num {
+    font-size: 96px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--good);
+    line-height: 1;
+  }
+  #stimRT .unit {
+    font-size: 13px;
+    color: var(--dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 12px;
+  }
+  #stimRT .hint {
+    margin-top: 48px;
+    font-size: 12px;
+    color: var(--dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  #falseStart {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #2a0000;
+    z-index: 15;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    color: var(--nogo);
+  }
+  #falseStart.active { display: flex; }
+  #falseStart .big {
+    font-size: 56px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+  #falseStart .small {
+    font-size: 14px;
+    color: var(--fg);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+
+  /* === RESULTS === */
+  #results {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 20;
+    flex-direction: column;
+    padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);
+    overflow-y: auto;
+  }
+  #results.active { display: flex; }
+
+  .splits {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .split {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 8px;
+    text-align: center;
+  }
+  .split .lbl {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 6px;
+  }
+  .split .v {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--fg);
+    font-family: ui-monospace, monospace;
+    line-height: 1;
+  }
+  .split .v.green { color: var(--good); }
+  .split .v.yellow { color: var(--accent); }
+  .split .v.dim { color: var(--dim); font-size: 18px; }
+  .split .u {
+    font-size: 9px;
+    color: var(--dim);
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  .meta-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    color: var(--dim);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .meta-row .stat .num {
+    font-size: 18px;
+    color: var(--fg);
+    font-weight: 700;
+    font-family: ui-monospace, monospace;
+  }
+  .meta-row .stat.fa .num { color: var(--nogo); }
+
+  #tagSection {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  #tagSection h3 {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 10px;
+  }
+  #playback {
+    width: 100%;
+    background: #000;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    max-height: 40vh;
+  }
+  .scrub-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .scrub-row input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    background: #000;
+    height: 6px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+  }
+  .scrub-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+  .scrub-row .time-label {
+    font-size: 11px;
+    color: var(--dim);
+    min-width: 70px;
+    text-align: right;
+    font-family: ui-monospace, monospace;
+  }
+  .step-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .step-row button {
+    flex: 1;
+    background: #000;
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 10px 4px;
+    font-size: 11px;
+    font-family: inherit;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .step-row button:active { background: var(--border); }
+  #tagBtn {
+    width: 100%;
+    background: var(--good);
+    color: #000;
+    border: none;
+    padding: 12px;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  #tagBtn.tagged { background: var(--accent); }
+
+  .results-btns {
+    margin-top: auto;
+    display: flex;
+    gap: 10px;
+    padding-top: 12px;
+  }
+  .results-btns button {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 16px;
+    font-size: 12px;
+    font-family: inherit;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .results-btns button.primary {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* === SESSION EXPORT === */
+  #exportScreen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 30;
+    flex-direction: column;
+    padding: calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 20px);
+    overflow-y: auto;
+  }
+  #exportScreen.active { display: flex; }
+  #exportScreen h2 {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+  #exportScreen .sub2 {
+    color: var(--dim);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .summary-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .summary-card .lbl {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 6px;
+  }
+  .summary-card .v {
+    font-size: 24px;
+    font-weight: 700;
+    font-family: ui-monospace, monospace;
+    color: var(--fg);
+  }
+  .summary-card .u { font-size: 11px; color: var(--dim); margin-left: 4px; }
+
+  #trialTable {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  #trialTable .header, #trialTable .row-data {
+    display: grid;
+    grid-template-columns: 30px 40px 1fr 1fr 1fr;
+    gap: 6px;
+    padding: 10px 12px;
+    font-size: 11px;
+    font-family: ui-monospace, monospace;
+    align-items: center;
+  }
+  #trialTable .header {
+    background: #000;
+    color: var(--dim);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  #trialTable .row-data {
+    border-top: 1px solid var(--border);
+    color: var(--fg);
+  }
+  #trialTable .row-data .dir { color: var(--dim); }
+  .export-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 12px;
+  }
+  .export-btns button {
+    flex: 1;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 18px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .export-btns button.secondary {
+    background: transparent;
+    color: var(--fg);
+    border: 1px solid var(--border);
+    font-weight: 500;
+  }
+  .export-btns button.danger {
+    background: transparent;
+    color: var(--nogo);
+    border: 1px solid var(--border);
+    font-weight: 500;
+  }
+
+  /* === In-app modal (replaces native alert/confirm) === */
+  #modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #modal.active { display: flex; }
+  .modal-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 420px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-body {
+    padding: 20px;
+    color: var(--fg);
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .modal-body.prose {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    white-space: normal;
+  }
+  .modal-btns {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .modal-btns button {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 14px;
+    font-size: 13px;
+    font-family: inherit;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .modal-btns button.primary {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+  .modal-btns button.danger {
+    background: var(--nogo);
+    color: #fff;
+    border-color: var(--nogo);
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<div id="config">
+  <div class="header-row">
+    <div>
+      <h1>Arrow</h1>
+      <div class="sub">Choice RT · Go/No-go · Video</div>
+    </div>
+    <div id="sessionCounter">Trials: <span class="n" id="trialCount">0</span></div>
+  </div>
+
+  <div class="field">
+    <label>Athlete / session ID (optional)</label>
+    <div class="range-row">
+      <input type="text" id="athleteId" placeholder="e.g. Player_07_pre">
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Window before first flash (seconds)</label>
+    <div class="range-row">
+      <input type="number" id="winMin" value="1" min="0" step="0.1">
+      <span>to</span>
+      <input type="number" id="winMax" value="4" min="0.1" step="0.1">
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Flash display duration (seconds)</label>
+    <div class="range-row">
+      <input type="number" id="displayDur" value="1" min="0.1" step="0.1">
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="row">
+      <div>
+        <div class="ttl">Touch & hold to start</div>
+        <div class="val">RT = lift latency</div>
+      </div>
+      <div class="switch on" id="holdToggle"></div>
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="row">
+      <div>
+        <div class="ttl">Video recording</div>
+        <div class="val">Tag movement onset post-trial</div>
+      </div>
+      <div class="switch" id="videoToggle"></div>
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="row">
+      <div>
+        <div class="ttl">Go / no-go mode</div>
+        <div class="val">Flash no-gos before the arrow</div>
+      </div>
+      <div class="switch" id="nogoToggle"></div>
+    </div>
+
+    <div class="collapsible" id="nogoOpts">
+      <label style="margin-top: 4px;">No-go stimulus</label>
+      <div class="toggle-grid">
+        <button class="toggle active" data-stim="x">✕</button>
+        <button class="toggle" data-stim="red">Red arrow</button>
+      </div>
+
+      <label style="margin-top: 16px;">No-go probability per slot (%)</label>
+      <div class="range-row">
+        <input type="number" id="nogoProb" value="70" min="0" max="99" step="1">
+        <span>% · max 5 no-gos</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-grid">
+    <button id="endSession" disabled>End Session</button>
+    <button id="start">Start Rep</button>
+  </div>
+
+  <button id="selfTest" style="margin-top:10px; background:transparent; color:var(--dim); border:1px solid var(--border); padding:12px; font-size:11px; font-family:inherit; letter-spacing:0.1em; text-transform:uppercase; border-radius:8px; cursor:pointer;">⚙ Timing self-test</button>
+</div>
+
+<!-- STIM SCREEN -->
+<div id="stim">
+  <div id="status">Waiting…</div>
+  <div id="recDot"></div>
+  <video id="liveCam" autoplay playsinline muted></video>
+  <div id="arrow">→</div>
+  <div id="stimRT"></div>
+</div>
+
+<!-- FALSE START SCREEN -->
+<div id="falseStart">
+  <div class="big">FALSE START</div>
+  <div class="small">Tap to restart</div>
+</div>
+
+<!-- RESULTS SCREEN -->
+<div id="results">
+  <div class="splits">
+    <div class="split">
+      <div class="lbl">RT (Lift)</div>
+      <div class="v green" id="splitRT">—</div>
+      <div class="u">ms</div>
+    </div>
+    <div class="split">
+      <div class="lbl">Mvmt Onset</div>
+      <div class="v yellow" id="splitMvmt">—</div>
+      <div class="u">ms (tag video)</div>
+    </div>
+    <div class="split">
+      <div class="lbl">Total</div>
+      <div class="v" id="splitTotal">—</div>
+      <div class="u">ms</div>
+    </div>
+  </div>
+
+  <div class="meta-row">
+    <div class="stat"><div class="num" id="statDirection">—</div><div>Direction</div></div>
+    <div class="stat fa"><div class="num" id="statFA">0</div><div>False alarms</div></div>
+  </div>
+
+  <div id="tagSection" style="display: none;">
+    <h3>Tag movement onset</h3>
+    <video id="playback" controls playsinline></video>
+    <div class="scrub-row">
+      <input type="range" id="scrub" min="0" max="100" value="0" step="0.1">
+      <div class="time-label" id="timeLabel">0.00s</div>
+    </div>
+    <div id="onsetInfo" style="font-size:11px; color:var(--dim); text-align:center; margin-bottom:8px; font-family:ui-monospace,monospace;">
+      <span id="relTimeLabel">— ms from onset</span>
+    </div>
+    <div class="step-row">
+      <button id="jumpOnset">⟲ onset</button>
+      <button id="stepBack10">−10f</button>
+      <button id="stepBack1">−1f</button>
+      <button id="playPause">▶</button>
+      <button id="stepFwd1">+1f</button>
+      <button id="stepFwd10">+10f</button>
+    </div>
+    <button id="tagBtn">Tag onset at current frame</button>
+  </div>
+
+  <div class="results-btns">
+    <button id="resBack">Back</button>
+    <button id="resAgain" class="primary">Next Rep</button>
+  </div>
+</div>
+
+<!-- EXPORT SCREEN -->
+<div id="exportScreen">
+  <h2>Session Summary</h2>
+  <div class="sub2" id="exportSub">—</div>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="lbl">Trials</div>
+      <div class="v" id="sumTrials">0</div>
+    </div>
+    <div class="summary-card">
+      <div class="lbl">Mean RT</div>
+      <div class="v" id="sumMeanRT">—<span class="u">ms</span></div>
+    </div>
+    <div class="summary-card">
+      <div class="lbl">Mean Mvmt</div>
+      <div class="v" id="sumMeanMvmt">—<span class="u">ms</span></div>
+    </div>
+    <div class="summary-card">
+      <div class="lbl">False alarms</div>
+      <div class="v" id="sumFA">0</div>
+    </div>
+  </div>
+
+  <div id="trialTable">
+    <div class="header">
+      <div>#</div>
+      <div>Dir</div>
+      <div>RT</div>
+      <div>Mvmt</div>
+      <div>Total</div>
+    </div>
+    <div id="trialRows"></div>
+  </div>
+
+  <div class="export-btns" style="flex-wrap: wrap;">
+    <button id="shareCSV" style="flex: 1 1 100%;">Share CSV</button>
+    <button id="backFromExport" class="secondary">Back to Reps</button>
+    <button id="newSession" class="danger">New Session</button>
+  </div>
+</div>
+
+<!-- Custom modal (replaces alert/confirm for PDF Expert compatibility) -->
+<div id="modal">
+  <div class="modal-box">
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-btns" id="modalBtns"></div>
+  </div>
+</div>
+
+<script>
+  // === Custom modal (replaces native alert/confirm for PDF Expert / restricted webviews) ===
+  function showModal({ message, buttons, monospace = false }) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById("modal");
+      const body = document.getElementById("modalBody");
+      const btns = document.getElementById("modalBtns");
+      body.textContent = message;
+      body.classList.toggle("prose", !monospace);
+      btns.innerHTML = "";
+      buttons.forEach(b => {
+        const el = document.createElement("button");
+        el.textContent = b.label;
+        if (b.style) el.classList.add(b.style);
+        el.onclick = () => {
+          modal.classList.remove("active");
+          resolve(b.value);
+        };
+        btns.appendChild(el);
+      });
+      modal.classList.add("active");
+    });
+  }
+  function modalAlert(message, monospace = false) {
+    return showModal({ message, buttons: [{ label: "OK", value: true, style: "primary" }], monospace });
+  }
+  function modalConfirm(message, { okLabel = "OK", cancelLabel = "Cancel", okStyle = "primary" } = {}) {
+    return showModal({
+      message,
+      buttons: [
+        { label: cancelLabel, value: false },
+        { label: okLabel, value: true, style: okStyle }
+      ]
+    });
+  }
+
+  const MAX_NOGOS = 5;
+  const FRAME_RATE = 30;
+  const FRAME_MS = 1000 / FRAME_RATE;
+
+  // Refs
+  const config = document.getElementById("config");
+  const stim = document.getElementById("stim");
+  const arrowEl = document.getElementById("arrow");
+  const statusEl = document.getElementById("status");
+  const recDot = document.getElementById("recDot");
+  const liveCam = document.getElementById("liveCam");
+  const results = document.getElementById("results");
+  const exportScreen = document.getElementById("exportScreen");
+  const falseStart = document.getElementById("falseStart");
+  const nogoToggle = document.getElementById("nogoToggle");
+  const videoToggle = document.getElementById("videoToggle");
+  const holdToggle = document.getElementById("holdToggle");
+  const nogoOpts = document.getElementById("nogoOpts");
+  const stimToggles = document.querySelectorAll(".toggle");
+  const trialCountEl = document.getElementById("trialCount");
+  const endSessionBtn = document.getElementById("endSession");
+
+  let timers = [];
+  let trialState = null;
+  let mediaStream = null;
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let recordedBlob = null;
+  let recordingStartTime = null;
+  let goOnsetSinceRecording = null;
+
+  // === Session log ===
+  let sessionLog = [];
+  let sessionStartedAt = null;
+
+  function rand(min, max) { return Math.random() * (max - min) + min; }
+  function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+  function bindSwitch(el, onChange) {
+    el.addEventListener("click", () => {
+      el.classList.toggle("on");
+      if (onChange) onChange(el.classList.contains("on"));
+    });
+  }
+  bindSwitch(nogoToggle, on => nogoOpts.classList.toggle("open", on));
+  bindSwitch(videoToggle);
+  bindSwitch(holdToggle);
+
+  stimToggles.forEach(t => {
+    t.addEventListener("click", () => {
+      stimToggles.forEach(x => x.classList.remove("active"));
+      t.classList.add("active");
+    });
+  });
+
+  function pickArrow() {
+    return Math.random() < 0.5 ? "←" : "→";
+  }
+
+  function updateSessionCounter() {
+    trialCountEl.textContent = sessionLog.length;
+    endSessionBtn.disabled = sessionLog.length === 0;
+  }
+
+  function startRecording() {
+    if (!mediaStream) return null;
+    recordedChunks = [];
+    const mimeOptions = [
+      "video/mp4;codecs=avc1",
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm"
+    ];
+    let mime = "";
+    for (const m of mimeOptions) {
+      if (MediaRecorder.isTypeSupported(m)) { mime = m; break; }
+    }
+    mediaRecorder = new MediaRecorder(mediaStream, mime ? { mimeType: mime } : {});
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+    };
+    mediaRecorder.start();
+    recordingStartTime = performance.now();
+    recDot.classList.add("on");
+    liveCam.classList.add("on");
+  }
+
+  function stopRecording() {
+    return new Promise((resolve) => {
+      if (!mediaRecorder || mediaRecorder.state === "inactive") {
+        resolve(null);
+        return;
+      }
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "video/webm" });
+        recordedBlob = blob;
+        recDot.classList.remove("on");
+        liveCam.classList.remove("on");
+        resolve(blob);
+      };
+      mediaRecorder.stop();
+    });
+  }
+
+  function stopCamera() {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(t => t.stop());
+      mediaStream = null;
+      liveCam.srcObject = null;
+    }
+  }
+
+  // === Pointer handling ===
+  let holdActive = false;
+
+  stim.addEventListener("pointerdown", (e) => {
+    if (!trialState) return;
+    const now = performance.now();
+    const useHold = trialState.config.useHold;
+
+    if (trialState.phase === "awaiting-finish") {
+      // Second tap — log total time and end trial
+      trialState.totalTime = now - trialState.goOnset;
+      finishTrial();
+      return;
+    }
+
+    if (useHold) {
+      if (trialState.phase === "pre-hold") {
+        holdActive = true;
+        trialState.phase = "holding";
+        statusEl.textContent = "HOLD";
+        statusEl.classList.add("holding");
+        const { winMin, winMax } = trialState.config;
+        const initialDelay = rand(winMin, winMax) * 1000;
+        trialState.holdStartedAt = now;
+        timers.push(setTimeout(runSlot, initialDelay));
+      }
+    } else {
+      if (trialState.phase === "go" && trialState.goOnset != null && !trialState.responded) {
+        trialState.responded = true;
+        trialState.rt = now - trialState.goOnset;
+        recordResponse();
+      } else if (trialState.phase === "nogo" && trialState.nogoShowing) {
+        trialState.falseAlarms++;
+        flashError();
+      }
+    }
+  });
+
+  stim.addEventListener("pointerup", (e) => {
+    if (!trialState) return;
+    const now = performance.now();
+    const useHold = trialState.config.useHold;
+    if (!useHold) return;
+    if (!holdActive) return;
+
+    holdActive = false;
+
+    if (trialState.phase === "go" && trialState.goOnset != null && !trialState.responded) {
+      trialState.responded = true;
+      trialState.rt = now - trialState.goOnset;
+      recordResponse();
+    } else if (trialState.phase === "nogo" && trialState.nogoShowing) {
+      handleFalseStart();
+    } else {
+      handleFalseStart();
+    }
+  });
+
+  stim.addEventListener("pointercancel", () => {
+    if (trialState && trialState.config.useHold && holdActive) {
+      holdActive = false;
+      handleFalseStart();
+    }
+  });
+
+  function flashError() {
+    stim.style.background = "#3a0000";
+    setTimeout(() => { stim.style.background = ""; }, 120);
+  }
+
+  function handleFalseStart() {
+    clearTimers();
+    arrowEl.classList.remove("show");
+    arrowEl.classList.remove("nogo");
+    stim.classList.remove("active");
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      try { mediaRecorder.stop(); } catch(e) {}
+      recDot.classList.remove("on");
+      liveCam.classList.remove("on");
+      recordedChunks = [];
+    }
+    falseStart.classList.add("active");
+
+    const restart = () => {
+      falseStart.classList.remove("active");
+      falseStart.removeEventListener("pointerdown", restart);
+      start();
+    };
+    setTimeout(() => falseStart.addEventListener("pointerdown", restart), 300);
+  }
+
+  function showFlash(symbol, isNogo, dur, onComplete) {
+    arrowEl.textContent = symbol;
+    arrowEl.classList.toggle("nogo", isNogo);
+    arrowEl.classList.add("show");
+    statusEl.textContent = "";
+    statusEl.classList.add("hide");
+
+    if (isNogo) {
+      trialState.phase = "nogo";
+      trialState.nogoShowing = true;
+    } else {
+      trialState.phase = "go";
+      trialState.goOnset = performance.now();
+      if (recordingStartTime != null) {
+        goOnsetSinceRecording = trialState.goOnset - recordingStartTime;
+        trialState.goOnsetSinceRecordingAtTrial = goOnsetSinceRecording;
+      }
+      trialState.goDirection = symbol;
+    }
+
+    timers.push(setTimeout(() => {
+      if (isNogo) {
+        arrowEl.classList.remove("show");
+        trialState.nogoShowing = false;
+        // Bring status back during ISI so user can see "Hold..." again? No — keep hidden until next trial.
+        timers.push(setTimeout(onComplete, dur * 1000));
+      }
+      // Go-arrow stays visible until lift/tap
+    }, dur * 1000));
+  }
+
+  function runSlot() {
+    if (!trialState) return;
+    const { nogoOn, nogoStim, nogoProb, dur } = trialState.config;
+    const forceGo = trialState.nogoCount >= MAX_NOGOS;
+    const isNogo = nogoOn && !forceGo && Math.random() < nogoProb;
+
+    if (isNogo) {
+      trialState.nogoCount++;
+      const symbol = nogoStim === "x" ? "✕" : pickArrow();
+      showFlash(symbol, true, dur, runSlot);
+    } else {
+      showFlash(pickArrow(), false, dur, null);
+    }
+  }
+
+  function recordResponse() {
+    clearTimers();
+    arrowEl.classList.remove("show");
+    statusEl.textContent = "";
+    statusEl.classList.remove("holding");
+
+    const stimRT = document.getElementById("stimRT");
+    stimRT.innerHTML =
+      '<div class="num">' + Math.round(trialState.rt) + '</div>' +
+      '<div class="unit">' + (trialState.config.useHold ? "ms · finger lift" : "ms · tap") + '</div>' +
+      '<div class="hint">Tap to finish rep</div>';
+    stimRT.classList.add("show");
+
+    trialState.phase = "awaiting-finish";
+  }
+
+  async function start() {
+    const winMin = parseFloat(document.getElementById("winMin").value);
+    const winMax = parseFloat(document.getElementById("winMax").value);
+    const dur = parseFloat(document.getElementById("displayDur").value);
+
+    if (isNaN(winMin) || isNaN(winMax) || winMin > winMax || winMin < 0 || dur <= 0) {
+      modalAlert("Check values: window min ≥ 0, min ≤ max, duration > 0");
+      return;
+    }
+
+    const useHold = holdToggle.classList.contains("on");
+    const useVideo = videoToggle.classList.contains("on");
+    const nogoOn = nogoToggle.classList.contains("on");
+    const nogoStim = document.querySelector(".toggle.active")?.dataset.stim || "x";
+    const nogoProb = nogoOn ? parseFloat(document.getElementById("nogoProb").value) / 100 : 0;
+
+    const stimRT = document.getElementById("stimRT");
+    stimRT.classList.remove("show");
+    stimRT.innerHTML = "";
+
+    recordingStartTime = null;
+    goOnsetSinceRecording = null;
+    recordedBlob = null;
+    recordedChunks = [];
+
+    if (useVideo && !mediaStream) {
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", frameRate: { ideal: 30, max: 60 } },
+          audio: false
+        });
+        liveCam.srcObject = mediaStream;
+      } catch (e) {
+        modalAlert("Camera access denied or unavailable: " + e.message);
+        videoToggle.classList.remove("on");
+      }
+    }
+
+    if (!sessionStartedAt) sessionStartedAt = new Date();
+
+    trialState = {
+      phase: useHold ? "pre-hold" : "pre",
+      nogoShowing: false,
+      goOnset: null,
+      goDirection: null,
+      responded: false,
+      rt: null,
+      totalTime: null,
+      movementOnset: null,
+      falseAlarms: 0,
+      nogoCount: 0,
+      timestamp: new Date().toISOString(),
+      config: { winMin, winMax, dur, useHold, useVideo: useVideo && !!mediaStream, nogoOn, nogoStim, nogoProb }
+    };
+
+    config.style.display = "none";
+    results.classList.remove("active");
+    falseStart.classList.remove("active");
+    stim.classList.add("active");
+    arrowEl.classList.remove("show");
+    arrowEl.classList.remove("nogo");
+    statusEl.classList.remove("holding");
+    statusEl.classList.remove("hide");
+
+    if (trialState.config.useVideo && mediaStream) {
+      startRecording();
+    }
+
+    if (useHold) {
+      statusEl.textContent = "TOUCH & HOLD";
+    } else {
+      statusEl.textContent = "READY";
+      const initialDelay = rand(winMin, winMax) * 1000;
+      timers.push(setTimeout(runSlot, initialDelay));
+    }
+  }
+
+  async function finishTrial() {
+    clearTimers();
+    arrowEl.classList.remove("show");
+    const stimRT = document.getElementById("stimRT");
+    stimRT.classList.remove("show");
+    stim.classList.remove("active");
+    statusEl.classList.remove("holding");
+
+    let blob = null;
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      blob = await stopRecording();
+    }
+
+    showResults(blob);
+  }
+
+  function showResults(blob) {
+    const splitRT = document.getElementById("splitRT");
+    const splitMvmt = document.getElementById("splitMvmt");
+    const splitTotal = document.getElementById("splitTotal");
+    const statDir = document.getElementById("statDirection");
+    const statFA = document.getElementById("statFA");
+    const tagSection = document.getElementById("tagSection");
+    const playback = document.getElementById("playback");
+
+    splitRT.textContent = trialState.rt != null ? Math.round(trialState.rt) : "—";
+    splitMvmt.textContent = "—";
+    splitMvmt.classList.add("dim");
+    splitTotal.textContent = trialState.totalTime != null ? Math.round(trialState.totalTime) : "—";
+    statDir.textContent = trialState.goDirection || "—";
+    statFA.textContent = trialState.falseAlarms;
+
+    if (blob && trialState.config.useVideo) {
+      const url = URL.createObjectURL(blob);
+      playback.src = url;
+      tagSection.style.display = "block";
+      tagSection.dataset.goOnsetMs = goOnsetSinceRecording != null ? goOnsetSinceRecording : "";
+      setupTagging(splitMvmt);
+    } else {
+      tagSection.style.display = "none";
+    }
+
+    results.classList.add("active");
+  }
+
+  function setupTagging(splitMvmtEl) {
+    const playback = document.getElementById("playback");
+    const scrub = document.getElementById("scrub");
+    const timeLabel = document.getElementById("timeLabel");
+    const relTimeLabel = document.getElementById("relTimeLabel");
+    const tagBtn = document.getElementById("tagBtn");
+    const playPause = document.getElementById("playPause");
+    const tagSection = document.getElementById("tagSection");
+    const goOnsetMs = parseFloat(tagSection.dataset.goOnsetMs);
+
+    tagBtn.classList.remove("tagged");
+    tagBtn.textContent = "Tag onset at current frame";
+
+    playback.addEventListener("loadedmetadata", () => {
+      scrub.max = playback.duration;
+      scrub.step = 0.01;
+      updateLabel();
+    }, { once: true });
+
+    function updateLabel() {
+      timeLabel.textContent = playback.currentTime.toFixed(2) + "s";
+      scrub.value = playback.currentTime;
+      if (!isNaN(goOnsetMs)) {
+        const rel = playback.currentTime * 1000 - goOnsetMs;
+        const sign = rel < 0 ? "−" : "+";
+        relTimeLabel.textContent = sign + Math.abs(Math.round(rel)) + " ms from onset";
+        relTimeLabel.style.color = rel < 0 ? "var(--nogo)" : "var(--good)";
+      }
+    }
+
+    playback.ontimeupdate = updateLabel;
+
+    scrub.oninput = () => {
+      playback.pause();
+      playback.currentTime = parseFloat(scrub.value);
+      playPause.textContent = "▶";
+      updateLabel();
+    };
+
+    playPause.onclick = () => {
+      if (playback.paused) {
+        playback.play();
+        playPause.textContent = "❚❚";
+      } else {
+        playback.pause();
+        playPause.textContent = "▶";
+      }
+    };
+
+    function step(deltaFrames) {
+      playback.pause();
+      playPause.textContent = "▶";
+      const newTime = Math.max(0, Math.min(playback.duration, playback.currentTime + deltaFrames * (FRAME_MS / 1000)));
+      playback.currentTime = newTime;
+    }
+
+    document.getElementById("stepBack10").onclick = () => step(-10);
+    document.getElementById("stepBack1").onclick = () => step(-1);
+    document.getElementById("stepFwd1").onclick = () => step(1);
+    document.getElementById("stepFwd10").onclick = () => step(10);
+    document.getElementById("jumpOnset").onclick = () => {
+      if (!isNaN(goOnsetMs)) {
+        playback.pause();
+        playPause.textContent = "▶";
+        playback.currentTime = goOnsetMs / 1000;
+      }
+    };
+
+    tagBtn.onclick = () => {
+      const tagTimeMs = playback.currentTime * 1000;
+      if (isNaN(goOnsetMs)) return;
+      const latencyMs = tagTimeMs - goOnsetMs;
+      tagBtn.classList.add("tagged");
+      tagBtn.textContent = "Re-tag onset";
+      trialState.movementOnset = latencyMs;
+      splitMvmtEl.textContent = Math.round(latencyMs);
+      splitMvmtEl.classList.remove("dim");
+    };
+  }
+
+  function commitTrial() {
+    if (!trialState || trialState.rt == null) return;
+    const athleteIdAtCommit = document.getElementById("athleteId").value.trim() || "anon";
+    const dirWord = trialState.goDirection === "←" ? "Left"
+                  : trialState.goDirection === "→" ? "Right"
+                  : "";
+    sessionLog.push({
+      athlete_id: athleteIdAtCommit,
+      trial: sessionLog.length + 1,
+      timestamp: trialState.timestamp,
+      direction: dirWord,
+      direction_symbol: trialState.goDirection,
+      rt_ms: trialState.rt != null ? Math.round(trialState.rt) : null,
+      movement_onset_ms: trialState.movementOnset != null ? Math.round(trialState.movementOnset) : null,
+      total_ms: trialState.totalTime != null ? Math.round(trialState.totalTime) : null,
+      false_alarms: trialState.falseAlarms,
+      nogo_count: trialState.nogoCount,
+      // Debug / accuracy verification fields
+      go_onset_perfnow_ms: trialState.goOnset != null ? Math.round(trialState.goOnset * 1000) / 1000 : null,
+      response_perfnow_ms: trialState.rt != null && trialState.goOnset != null ? Math.round((trialState.goOnset + trialState.rt) * 1000) / 1000 : null,
+      finish_perfnow_ms: trialState.totalTime != null && trialState.goOnset != null ? Math.round((trialState.goOnset + trialState.totalTime) * 1000) / 1000 : null,
+      go_onset_video_ms: trialState.config.useVideo && trialState.goOnsetSinceRecordingAtTrial != null ? Math.round(trialState.goOnsetSinceRecordingAtTrial) : null,
+      // Config snapshot
+      hold_mode: trialState.config.useHold,
+      video: trialState.config.useVideo,
+      nogo_enabled: trialState.config.nogoOn,
+      nogo_prob: trialState.config.nogoOn ? trialState.config.nogoProb : null,
+      win_min_s: trialState.config.winMin,
+      win_max_s: trialState.config.winMax,
+      display_dur_s: trialState.config.dur
+    });
+    updateSessionCounter();
+  }
+
+  function backToConfig() {
+    commitTrial();
+    clearTimers();
+    trialState = null;
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      try { mediaRecorder.stop(); } catch(e) {}
+    }
+    stim.classList.remove("active");
+    results.classList.remove("active");
+    falseStart.classList.remove("active");
+    arrowEl.classList.remove("show");
+    arrowEl.classList.remove("nogo");
+    config.style.display = "flex";
+  }
+
+  document.getElementById("start").addEventListener("click", start);
+  document.getElementById("resBack").addEventListener("click", backToConfig);
+  document.getElementById("resAgain").addEventListener("click", () => {
+    commitTrial();
+    trialState = null;
+    start();
+  });
+
+  // === Session export ===
+  endSessionBtn.addEventListener("click", showExportScreen);
+  document.getElementById("backFromExport").addEventListener("click", () => {
+    exportScreen.classList.remove("active");
+    config.style.display = "flex";
+  });
+  document.getElementById("newSession").addEventListener("click", async () => {
+    const ok = await modalConfirm(
+      "Start new session?\n\nThis clears " + sessionLog.length + " logged trial(s). Export CSV first if you want to keep them.",
+      { okLabel: "Clear & start", cancelLabel: "Cancel", okStyle: "danger" }
+    );
+    if (!ok) return;
+    sessionLog = [];
+    sessionStartedAt = null;
+    document.getElementById("athleteId").value = "";
+    updateSessionCounter();
+    exportScreen.classList.remove("active");
+    config.style.display = "flex";
+  });
+  document.getElementById("shareCSV").addEventListener("click", shareCSV);
+
+  function showExportScreen() {
+    const currentId = document.getElementById("athleteId").value.trim();
+    const idsInLog = [...new Set(sessionLog.map(t => t.athlete_id))];
+    const idDisplay = idsInLog.length > 1
+      ? idsInLog.join(", ")
+      : (idsInLog[0] || currentId || "anon");
+    const sub = idDisplay + " · " + (sessionStartedAt ? sessionStartedAt.toLocaleString() : "");
+    document.getElementById("exportSub").textContent = sub;
+
+    const rts = sessionLog.filter(t => t.rt_ms != null).map(t => t.rt_ms);
+    const mvmts = sessionLog.filter(t => t.movement_onset_ms != null).map(t => t.movement_onset_ms);
+    const fas = sessionLog.reduce((a, t) => a + (t.false_alarms || 0), 0);
+
+    document.getElementById("sumTrials").textContent = sessionLog.length;
+    document.getElementById("sumMeanRT").innerHTML = rts.length
+      ? Math.round(rts.reduce((a,b) => a+b, 0) / rts.length) + '<span class="u">ms</span>'
+      : '—<span class="u">ms</span>';
+    document.getElementById("sumMeanMvmt").innerHTML = mvmts.length
+      ? Math.round(mvmts.reduce((a,b) => a+b, 0) / mvmts.length) + '<span class="u">ms</span>'
+      : '—<span class="u">ms</span>';
+    document.getElementById("sumFA").textContent = fas;
+
+    const rows = sessionLog.map(t =>
+      `<div class="row-data">
+        <div>${t.trial}</div>
+        <div class="dir">${t.direction || "—"}</div>
+        <div>${t.rt_ms != null ? t.rt_ms : "—"}</div>
+        <div>${t.movement_onset_ms != null ? t.movement_onset_ms : "—"}</div>
+        <div>${t.total_ms != null ? t.total_ms : "—"}</div>
+      </div>`
+    ).join("");
+    document.getElementById("trialRows").innerHTML = rows;
+
+    config.style.display = "none";
+    exportScreen.classList.add("active");
+  }
+
+  function buildCSV() {
+    const headers = [
+      "athlete_id","trial","timestamp","direction",
+      "rt_ms","movement_onset_ms","total_ms",
+      "false_alarms","nogo_count_before_go",
+      "go_onset_perfnow_ms","response_perfnow_ms","finish_perfnow_ms","go_onset_video_ms",
+      "hold_mode","video","nogo_enabled","nogo_prob",
+      "win_min_s","win_max_s","display_dur_s"
+    ];
+    const lines = [headers.join(",")];
+    for (const t of sessionLog) {
+      const row = [
+        csvCell(t.athlete_id), t.trial, t.timestamp, csvCell(t.direction),
+        t.rt_ms ?? "", t.movement_onset_ms ?? "", t.total_ms ?? "",
+        t.false_alarms ?? 0, t.nogo_count ?? 0,
+        t.go_onset_perfnow_ms ?? "", t.response_perfnow_ms ?? "", t.finish_perfnow_ms ?? "", t.go_onset_video_ms ?? "",
+        t.hold_mode, t.video, t.nogo_enabled,
+        t.nogo_prob ?? "", t.win_min_s, t.win_max_s, t.display_dur_s
+      ];
+      lines.push(row.join(","));
+    }
+    // UTF-8 BOM so Excel reads it correctly
+    return "\uFEFF" + lines.join("\n");
+  }
+
+  function csvCell(v) {
+    if (v == null) return "";
+    const s = String(v);
+    if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  }
+
+  async function shareCSV() {
+    if (sessionLog.length === 0) {
+      modalAlert("No trials to export.");
+      return;
+    }
+    const csv = buildCSV();
+    const athleteId = document.getElementById("athleteId").value.trim() || "session";
+    const stamp = (sessionStartedAt || new Date()).toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const filename = `arrow_${athleteId}_${stamp}.csv`;
+
+    // Try native share with file first
+    try {
+      const file = new File([csv], filename, { type: "text/csv" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "Arrow session",
+          text: `${sessionLog.length} trials · ${athleteId}`
+        });
+        return;
+      }
+    } catch (e) {
+      console.log("Share with file failed, falling back:", e);
+    }
+
+    // Fallback: share text (will open share sheet with CSV body)
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: filename,
+          text: csv
+        });
+        return;
+      }
+    } catch (e) {
+      console.log("Share text failed:", e);
+    }
+
+    // Last resort: download via blob URL
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  }
+
+  // === Timing self-test ===
+  document.getElementById("selfTest").addEventListener("click", async () => {
+    const report = [];
+    report.push("=== Timing Self-Test ===");
+    report.push("Device: " + navigator.userAgent);
+    report.push("Time origin: " + new Date(performance.timeOrigin).toISOString());
+    report.push("");
+
+    // 1. performance.now() resolution
+    const nowSamples = [];
+    let prev = performance.now();
+    for (let i = 0; i < 100000 && nowSamples.length < 50; i++) {
+      const n = performance.now();
+      if (n !== prev) { nowSamples.push(n - prev); prev = n; }
+    }
+    const minStep = nowSamples.length ? Math.min(...nowSamples) : NaN;
+    report.push("performance.now() min step: " + minStep.toFixed(4) + " ms");
+    report.push("  (Safari throttles to ~1ms; Chrome ~0.1ms or finer)");
+    report.push("");
+
+    // 2. setTimeout fidelity for the 1000ms target
+    const targetMs = 1000;
+    const nReps = 10;
+    const errors = [];
+    for (let i = 0; i < nReps; i++) {
+      const t0 = performance.now();
+      await new Promise(r => setTimeout(r, targetMs));
+      const t1 = performance.now();
+      errors.push(t1 - t0 - targetMs);
+    }
+    const meanErr = errors.reduce((a,b) => a+b, 0) / errors.length;
+    const maxErr = Math.max(...errors);
+    const minErr = Math.min(...errors);
+    report.push("setTimeout " + targetMs + "ms fidelity (n=" + nReps + "):");
+    report.push("  mean error: " + meanErr.toFixed(2) + " ms");
+    report.push("  range: " + minErr.toFixed(2) + " to " + maxErr.toFixed(2) + " ms");
+    report.push("");
+
+    // 3. rAF tick interval (frame rate sanity check)
+    const rafTimes = [];
+    let lastRaf = performance.now();
+    await new Promise(resolve => {
+      let count = 0;
+      function tick(t) {
+        rafTimes.push(t - lastRaf);
+        lastRaf = t;
+        count++;
+        if (count < 30) requestAnimationFrame(tick);
+        else resolve();
+      }
+      requestAnimationFrame(tick);
+    });
+    rafTimes.shift(); // skip first (zero)
+    const meanFrame = rafTimes.reduce((a,b) => a+b, 0) / rafTimes.length;
+    report.push("requestAnimationFrame interval (n=" + rafTimes.length + "):");
+    report.push("  mean: " + meanFrame.toFixed(2) + " ms (" + (1000/meanFrame).toFixed(1) + " Hz)");
+    report.push("  range: " + Math.min(...rafTimes).toFixed(2) + " to " + Math.max(...rafTimes).toFixed(2) + " ms");
+    report.push("");
+
+    // 4. DOM render-to-detect latency: time between setting a class and the resulting paint
+    const testEl = document.createElement("div");
+    testEl.style.cssText = "position:fixed;left:-100px;top:-100px;width:10px;height:10px;background:black;";
+    document.body.appendChild(testEl);
+    const renderTimes = [];
+    for (let i = 0; i < 10; i++) {
+      const tStart = performance.now();
+      testEl.style.background = i % 2 ? "white" : "black";
+      await new Promise(r => requestAnimationFrame(() => r()));
+      renderTimes.push(performance.now() - tStart);
+    }
+    document.body.removeChild(testEl);
+    const meanRender = renderTimes.reduce((a,b) => a+b, 0) / renderTimes.length;
+    report.push("DOM update → next frame (n=10):");
+    report.push("  mean: " + meanRender.toFixed(2) + " ms");
+    report.push("  range: " + Math.min(...renderTimes).toFixed(2) + " to " + Math.max(...renderTimes).toFixed(2) + " ms");
+    report.push("  (this is one source of stimulus-onset uncertainty)");
+    report.push("");
+
+    report.push("=== Summary ===");
+    report.push("Your RT measurements are accurate to roughly ±" + Math.max(meanFrame, minStep).toFixed(0) + "–" + (meanFrame * 2).toFixed(0) + " ms.");
+    report.push("Stimulus onset is timestamped before the frame paints,");
+    report.push("so RTs run slightly inflated (~" + meanFrame.toFixed(0) + " ms) vs hardware-grade.");
+    report.push("Touch input latency adds ~10-20ms on iOS.");
+
+    modalAlert(report.join("\n"), true);
+    console.log(report.join("\n"));
+  });
+
+  updateSessionCounter();
+</script>
+
+</body>
+</html>
