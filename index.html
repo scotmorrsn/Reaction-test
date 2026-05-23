@@ -738,9 +738,16 @@
   </div>
 
   <div class="field">
-    <label>Athlete / session ID (optional)</label>
-    <div class="range-row">
-      <input type="text" id="athleteId" placeholder="e.g. Player_07_pre">
+    <label>Athlete / session ID</label>
+    <select id="athleteSelect" style="width: 100%; background: #000; border: 1px solid var(--border); color: var(--fg); padding: 12px; font-size: 15px; font-family: inherit; border-radius: 8px; margin-bottom: 8px; -webkit-appearance: none; appearance: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%228%22 viewBox=%220 0 12 8%22><path fill=%22%23888%22 d=%22M6 8L0 0h12z%22/></svg>'); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;">
+      <option value="">— Select athlete —</option>
+    </select>
+    <div class="range-row" style="margin-bottom: 8px;">
+      <input type="text" id="athleteId" placeholder="Type new or one-off name" style="width: 100%; flex: 1;">
+    </div>
+    <div style="display: flex; gap: 6px;">
+      <button id="addAthleteBtn" style="flex: 1; background: #000; border: 1px solid var(--border); color: var(--fg); padding: 10px; font-size: 11px; font-family: inherit; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 6px; cursor: pointer;">+ Add to roster</button>
+      <button id="manageRosterBtn" style="flex: 1; background: #000; border: 1px solid var(--border); color: var(--fg); padding: 10px; font-size: 11px; font-family: inherit; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 6px; cursor: pointer;">Manage roster</button>
     </div>
   </div>
 
@@ -1504,6 +1511,7 @@
     sessionLog = [];
     sessionStartedAt = null;
     document.getElementById("athleteId").value = "";
+    document.getElementById("athleteSelect").value = "";
     updateSessionCounter();
     exportScreen.classList.remove("active");
     config.style.display = "flex";
@@ -1718,6 +1726,134 @@
     modalAlert(report.join("\n"), true);
     console.log(report.join("\n"));
   });
+
+  // === Roster management ===
+  const ROSTER_KEY = "arrow_roster_v1";
+  function loadRoster() {
+    try {
+      const raw = localStorage.getItem(ROSTER_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  function saveRoster(roster) {
+    try { localStorage.setItem(ROSTER_KEY, JSON.stringify(roster)); } catch (e) {}
+  }
+  function renderRoster() {
+    const sel = document.getElementById("athleteSelect");
+    const roster = loadRoster();
+    const current = sel.value;
+    sel.innerHTML = '<option value="">— Select athlete —</option>' +
+      roster.map(n => `<option value="${escapeAttr(n)}">${escapeHtml(n)}</option>`).join("");
+    // Try to preserve current selection
+    if (current && roster.includes(current)) sel.value = current;
+  }
+  function escapeAttr(s) { return String(s).replace(/"/g, "&quot;").replace(/&/g, "&amp;"); }
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // Wire up dropdown -> text field sync
+  document.getElementById("athleteSelect").addEventListener("change", (e) => {
+    const v = e.target.value;
+    if (v) document.getElementById("athleteId").value = v;
+  });
+
+  // Add to roster button
+  document.getElementById("addAthleteBtn").addEventListener("click", async () => {
+    const input = document.getElementById("athleteId");
+    const name = input.value.trim();
+    if (!name) {
+      modalAlert("Type a name in the text field first, then tap '+ Add to roster'.");
+      return;
+    }
+    const roster = loadRoster();
+    if (roster.includes(name)) {
+      modalAlert(`"${name}" is already in the roster.`);
+      return;
+    }
+    roster.push(name);
+    roster.sort((a, b) => a.localeCompare(b));
+    saveRoster(roster);
+    renderRoster();
+    document.getElementById("athleteSelect").value = name;
+  });
+
+  // Manage roster button — opens modal with list + remove buttons
+  document.getElementById("manageRosterBtn").addEventListener("click", () => {
+    openRosterManager();
+  });
+
+  async function openRosterManager() {
+    const roster = loadRoster();
+    if (roster.length === 0) {
+      modalAlert("Roster is empty. Add names using the '+ Add to roster' button.");
+      return;
+    }
+
+    // Build a custom modal body listing names with remove buttons
+    const modal = document.getElementById("modal");
+    const body = document.getElementById("modalBody");
+    const btns = document.getElementById("modalBtns");
+
+    function render() {
+      const current = loadRoster();
+      body.classList.remove("prose");
+      body.innerHTML = `<div style="margin-bottom:12px; font-family:-apple-system,sans-serif; font-size:13px; color:var(--dim); letter-spacing:0.05em;">${current.length} name${current.length===1?"":"s"} in roster</div>` +
+        current.map((n, i) => `
+          <div style="display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--border); font-family:-apple-system,sans-serif;">
+            <div style="flex:1; font-size:15px; color:var(--fg);">${escapeHtml(n)}</div>
+            <button data-rm="${i}" style="background:transparent; border:1px solid var(--border); color:var(--nogo); padding:6px 12px; font-size:11px; font-family:inherit; letter-spacing:0.1em; text-transform:uppercase; border-radius:6px; cursor:pointer;">Remove</button>
+          </div>
+        `).join("");
+
+      body.querySelectorAll("[data-rm]").forEach(btn => {
+        btn.onclick = async () => {
+          const idx = parseInt(btn.dataset.rm);
+          const r = loadRoster();
+          const removed = r[idx];
+          r.splice(idx, 1);
+          saveRoster(r);
+          renderRoster();
+          if (r.length === 0) {
+            modal.classList.remove("active");
+            return;
+          }
+          render();
+        };
+      });
+    }
+
+    render();
+
+    btns.innerHTML = "";
+    const clearBtn = document.createElement("button");
+    clearBtn.textContent = "Clear all";
+    clearBtn.classList.add("danger");
+    clearBtn.onclick = async () => {
+      modal.classList.remove("active");
+      const ok = await modalConfirm(
+        `Remove all ${loadRoster().length} names from the roster?`,
+        { okLabel: "Clear all", okStyle: "danger" }
+      );
+      if (ok) {
+        saveRoster([]);
+        renderRoster();
+      }
+    };
+    const doneBtn = document.createElement("button");
+    doneBtn.textContent = "Done";
+    doneBtn.classList.add("primary");
+    doneBtn.onclick = () => modal.classList.remove("active");
+    btns.appendChild(clearBtn);
+    btns.appendChild(doneBtn);
+
+    modal.classList.add("active");
+  }
+
+  renderRoster();
 
   updateSessionCounter();
 </script>
